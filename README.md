@@ -31,7 +31,7 @@
 ## Связь с другими репозиториями и запуск
 
 - Репозиторий **не клонируется напрямую** при инициализации кластера через [ansible-gitops-bootstrap-health-api](https://github.com/vikgur/ansible-gitops-bootstrap-health-api).
-- Вместо этого он подключается **как дочернее приложение** из [argocd-config-health-api](https://github.com/Vikgur/argocd-config-health-api) — через объект `Application`, описанный в [apps/platform-apps.yaml](https://github.com/Vikgur/argocd-config-health-api/-/blob/main/apps/platform-apps.yaml).
+- Вместо этого он подключается **как дочернее приложение** из [argocd-config-health-api](https://github.com/Vikgur/argocd-config-health-api) — через объект `Application`, описанный в [apps/platform-apps.yaml](https://github.com/Vikgur/argocd-config-health-api/blob/main/apps/platform-apps.yaml).
 - Это позволяет:
   - централизованно управлять всеми источниками в [argocd-config-health-api](https://github.com/Vikgur/argocd-config-health-api),
   - отделить платформу от пользовательских сервисов,
