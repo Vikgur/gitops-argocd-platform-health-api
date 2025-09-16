@@ -1,0 +1,16 @@
+quiet: true
+download-external-modules: true
+
+framework:
+  - kubernetes
+
+skip-check:
+  # Пример: если не нужны варнинги про отсутствие ресурсов у Ingress
+  - CKV_K8S_21  # Ingress should specify host
+
+evaluate-variables: true
+
+# Пути, которые сканировать
+directory:
+  - apps
+  - policy

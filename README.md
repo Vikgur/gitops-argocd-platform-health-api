@@ -10,6 +10,13 @@
     - [external-secrets.yaml — секреты из облака](#external-secretsyaml--секреты-из-облака)  
     - [monitoring.yaml — метрики и алерты](#monitoringyaml--метрики-и-алерты)  
     - [policy-engine.yaml — политики безопасности](#policy-engineyaml--политики-безопасности)  
+- [Внедренные DevSecOps практики](#внедренные-devsecops-практики)  
+  - [Безопасность, linting и валидация](#безопасность-linting-и-валидация)  
+    - [.yamllint.yml](#yamllintyml)  
+    - [.checkov.yaml](#checkovyaml)  
+    - [policy/argo/secure-apps.rego](#policyargosecure-appsrego)  
+    - [.gitleaks.toml](#gitleakstoml)  
+    - [.pre-commit-config.yaml](#pre-commit-configyaml)  
 
 ---
 
@@ -31,7 +38,7 @@
 ## Связь с другими репозиториями и запуск
 
 - Репозиторий **не клонируется напрямую** при инициализации кластера через [ansible-gitops-bootstrap-health-api](https://github.com/vikgur/ansible-gitops-bootstrap-health-api).
-- Вместо этого он подключается **как дочернее приложение** из [argocd-config-health-api](https://github.com/Vikgur/argocd-config-health-api) — через объект `Application`, описанный в [apps/platform-apps.yaml](https://github.com/Vikgur/argocd-config-health-api/blob/main/apps/platform-apps.yaml).
+- Вместо этого он подключается **как дочернее приложение** из [argocd-config-health-api](https://github.com/Vikgur/argocd-config-health-api) — через объект `Application`, описанный в [apps/platform-apps.yaml](https://github.com/Vikgur/argocd-config-health-api/-/blob/main/apps/platform-apps.yaml).
 - Это позволяет:
   - централизованно управлять всеми источниками в [argocd-config-health-api](https://github.com/Vikgur/argocd-config-health-api),
   - отделить платформу от пользовательских сервисов,
@@ -92,3 +99,54 @@
 **Назначение:**  
 Устанавливает `kyverno` — движок Policy-as-Code.  
 Применяет политики к Kubernetes-объектам: проверка аннотаций, запрет привилегированных контейнеров, enforce-логика и т.д.
+
+# Внедренные DevSecOps практики
+
+В этот репозиторий внедрён набор DevSecOps-инструментов, обеспечивающих контроль качества и безопасности GitOps-манифестов.
+
+## Безопасность, linting и валидация
+
+### `.yamllint.yml`
+
+**Назначение:**  
+Проверка синтаксиса и стиля YAML-файлов.  
+Предотвращает ошибки форматирования и обеспечивает единый стандарт оформления.
+
+---
+
+### `.checkov.yaml`
+
+**Назначение:**  
+Анализ Kubernetes-манифестов с помощью Checkov.  
+Выявляет небезопасные практики: использование `latest` образов, отсутствие ресурсов, некорректные Ingress и т.д.
+
+---
+
+### `policy/argo/secure-apps.rego`
+
+**Назначение:**  
+OPA-политики для Argo CD `Application`.  
+Запрещают:  
+- использование `targetRevision: HEAD`,  
+- отключение `prune` и `selfHeal` в `syncPolicy`.  
+Гарантируют корректную и безопасную конфигурацию Argo CD-приложений.
+
+---
+
+### `.gitleaks.toml`
+
+**Назначение:**  
+Поиск секретов в коммитах и файлах.  
+Предотвращает утечку токенов, паролей и других чувствительных данных в Git.
+
+---
+
+### `.pre-commit-config.yaml`
+
+**Назначение:**  
+Автоматический запуск проверок перед коммитом (`yamllint`, `checkov`, `gitleaks`).  
+Позволяет выявлять проблемы ещё до попадания изменений в репозиторий.
+
+---
+
+> В результате обеспечивается базовое покрытие DevSecOps: от синтаксиса и стиля YAML до поиска секретов и применения политик безопасности для Argo CD.

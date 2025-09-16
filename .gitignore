@@ -11,3 +11,24 @@
 # OS/system files
 .DS_Store
 Thumbs.db
+
+# Editor/IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Python virtualenv (если используешь conftest/opa через pip)
+.venv/
+__pycache__/
+
+# Policy test cache
+*.rego.tmp
+*.test
+
+# Gitleaks / reports
+gitleaks.log
+gitleaks-report.json
+
+# Pre-commit cache
+.pre-commit-config.yaml.bak
+.pre-commit-hooks.yaml
