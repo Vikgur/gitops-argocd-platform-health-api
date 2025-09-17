@@ -4,12 +4,16 @@
   - [Связь с другими репозиториями и запуск](#связь-с-другими-репозиториями-и-запуск)  
 - [Архитектура](#архитектура)  
   - [apps/](#apps)  
-    - [ingress-nginx.yaml — точка входа](#ingress-nginxyaml--точка-входа)  
+    - [argo-rollouts.yaml — blue/green и canary деплой](#argo-rolloutsyaml--bluegreen-и-canary-деплой)  
+    - [argocd-image-updater.yaml — автоматическое обновление образов](#argocd-image-updateryaml--автоматическое-обновление-образов)  
     - [cert-manager.yaml — автоматический TLS](#cert-manageryaml--автоматический-tls)  
-    - [argo-rollouts.yaml — bluegreen-и-canary-деплой](#argo-rolloutsyaml--bluegreen-и-canary-деплой)  
     - [external-secrets.yaml — секреты из облака](#external-secretsyaml--секреты-из-облака)  
+    - [ingress-nginx.yaml — точка входа](#ingress-nginxyaml--точка-входа)  
     - [monitoring.yaml — метрики и алерты](#monitoringyaml--метрики-и-алерты)  
-    - [policy-engine.yaml — политики безопасности](#policy-engineyaml--политики-безопасности)  
+    - [policy-engine.yaml — политики безопасности](#policy-engineyaml--политики-безопасности)   
+  - [argocd-image-updater](#argocd-image-updater)  
+    - [argocd-image-updater-config.yaml](#argocd-image-updater-configyaml)  
+    - [secret.yaml](#secretyaml)  
 - [Внедренные DevSecOps практики](#внедренные-devsecops-практики)  
   - [Безопасность, linting и валидация](#безопасность-linting-и-валидация)  
     - [.yamllint.yml](#yamllintyml)  
@@ -24,12 +28,13 @@
 
 Этот репозиторий — **App of Apps** для продовой GitOps-платформы [`health-api`](https://github.com/vikgur/health-api-for-microservice-stack). Он описывает системные Argo CD-приложения (`kind: Application`) для базовых компонентов, необходимых **до запуска микросервисов**:
 
-- `ingress-nginx` — точка входа  
-- `cert-manager` — автоматический TLS  
 - `argo-rollouts` — стратегии выкладки  
+- `argocd-image-updater` — автоматическое обновление тегов образов по стратегии и верификации подписи  
+- `cert-manager` — автоматический TLS  
 - `external-secrets` — секреты из облака  
+- `ingress-nginx` — точка входа  
 - `kube-prometheus-stack` — мониторинг  
-- `kyverno` — политики безопасности  
+- `kyverno` — политики безопасности 
 
 Платформа живёт **дольше**, чем любые сервисы, и не зависит от бизнес-логики. Её можно обновлять независимо.
 
@@ -54,13 +59,18 @@
 
 ## `apps/`
 
-### `ingress-nginx.yaml` — точка входа
+### `argo-rollouts.yaml` — blue/green и canary деплой
 
 **Назначение:**  
-Устанавливает `ingress-nginx` — главный Ingress-контроллер.  
-Обрабатывает внешний HTTP/HTTPS трафик и маршрутизирует его по сервисам.
+Устанавливает `argo-rollouts` для продвинутых стратегий выкладки.  
+Поддерживает `blueGreen`, `canary`, `step analysis`, ручной промоушен и откаты.
 
----
+### `argocd-image-updater.yaml` — автоматическое обновление образов
+
+**Назначение:**  
+Устанавливает компонент Argo Image Updater через Helm-чарт.  
+Этот сервис отслеживает новые теги образов в container registry, проверяет подписи (`cosign`) и обновляет Argo CD Application с актуальными версиями.  
+Работает совместно с манифестами в директории `argocd-image-updater/` (ConfigMap и Secret).
 
 ### `cert-manager.yaml` — автоматический TLS
 
@@ -68,23 +78,17 @@
 Устанавливает `cert-manager`, который автоматически получает и обновляет TLS-сертификаты (например, от Let's Encrypt).  
 Нужен для HTTPS и безопасного взаимодействия с внешними сервисами.
 
----
-
-### `argo-rollouts.yaml` — blue/green и canary деплой
-
-**Назначение:**  
-Устанавливает `argo-rollouts` для продвинутых стратегий выкладки.  
-Поддерживает `blueGreen`, `canary`, `step analysis`, ручной промоушен и откаты.
-
----
-
 ### `external-secrets.yaml` — секреты из облака
 
 **Назначение:**  
 Устанавливает `external-secrets` — компонент, который синхронизирует Kubernetes `Secret`-ы с внешними Secret Manager (например, Yandex Cloud, HashiCorp Vault).  
 Избавляет от хранения секретов в Git.
 
----
+### `ingress-nginx.yaml` — точка входа
+
+**Назначение:**  
+Устанавливает `ingress-nginx` — главный Ingress-контроллер.  
+Обрабатывает внешний HTTP/HTTPS трафик и маршрутизирует его по сервисам.
 
 ### `monitoring.yaml` — метрики и алерты
 
@@ -92,13 +96,33 @@
 Устанавливает `kube-prometheus-stack`: Prometheus, Grafana, node-exporter, алерты и дешборды.  
 Даёт видимость кластера и сервисов, поддерживает метрики для rollout-стратегий.
 
----
-
 ### `policy-engine.yaml` — политики безопасности
 
 **Назначение:**  
 Устанавливает `kyverno` — движок Policy-as-Code.  
 Применяет политики к Kubernetes-объектам: проверка аннотаций, запрет привилегированных контейнеров, enforce-логика и т.д.
+
+---
+
+## `argocd-image-updater`
+
+Конфигурация и секреты для работы Argo Image Updater.
+
+### `argocd-image-updater-config.yaml`
+
+**Назначение:**  
+Задаёт глобальные настройки Argo Image Updater.  
+Определяет используемые container registry, параметры аутентификации и проверку подписей образов (`cosign`).  
+Применяется в namespace `argocd`.
+
+### `secret.yaml`
+
+**Назначение:**  
+Содержит учётные данные для доступа к GitHub Container Registry (GHCR).  
+Используется Argo Image Updater для чтения информации о тегах и связанных подписях.  
+Создаётся как Kubernetes Secret в namespace `argocd`.
+
+---
 
 # Внедренные DevSecOps практики
 

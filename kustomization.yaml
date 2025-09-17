@@ -8,3 +8,4 @@ resources:
   - apps/external-secrets.yaml
   - apps/monitoring.yaml
   - apps/policy-engine.yaml
+  - apps/argocd-image-updater.yaml
