@@ -14,6 +14,7 @@
   - [argocd-image-updater](#argocd-image-updater)  
     - [argocd-image-updater-config.yaml](#argocd-image-updater-configyaml)  
     - [secret.yaml](#secretyaml)  
+    - [Шаги интеграции в проект health-api](#шаги-интеграции-в-проект-health-api)
 - [Внедренные DevSecOps практики](#внедренные-devsecops-практики)  
   - [Безопасность, linting и валидация](#безопасность-linting-и-валидация)  
     - [.yamllint.yml](#yamllintyml)  
@@ -121,6 +122,24 @@
 Содержит учётные данные для доступа к GitHub Container Registry (GHCR).  
 Используется Argo Image Updater для чтения информации о тегах и связанных подписях.  
 Создаётся как Kubernetes Secret в namespace `argocd`.
+
+### Шаги интеграции в проект health-api
+
+1. **Dockerfile**  
+   Добавляются стандартные OCI-метки (`source`, `revision`, `created`) для каждого сервиса (backend, frontend).  
+   Эти метки позволяют Argo Image Updater отслеживать происхождение и свежесть образов.
+
+2. **Helm values**  
+   В репозитории `helm-blue-green-canary-gitops-health-api` для каждого сервиса (например, `helm/values/backend.yaml`) настраиваются параметры `image.repository` и аннотации Argo Image Updater.  
+   Это указывает AIU, какие образы обновлять и по каким правилам.
+
+3. **ConfigMap**  
+   В репозитории `gitops-argocd-platform-health-api` создаётся `argocd-image-updater-config.yaml` с глобальной конфигурацией.  
+   Он описывает, с какими registry работает AIU и где хранится ключ cosign для верификации подписей.
+
+4. **Secret**  
+   В том же репозитории добавляется `Secret` с учётными данными для доступа к GHCR.  
+   Этот секрет используется AIU для скачивания информации о тегах и подписях.
 
 ---
 
